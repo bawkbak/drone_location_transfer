@@ -1,77 +1,51 @@
 #include <iostream>
 #include <math.h>
 
-#include <ros/ros.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+
 #include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/PoseStamped.h>
 
 #define PI 3.14159265
 
 using namespace std; 
+void syncCallback(const geometry_msgs::PoseStamped::ConstPtr& msg_ekf, const geometry_msgs::PoseStamped::ConstPtr& msg_mavros){
+    float tf_offset_x, tf_offset_y;
+    tf_offset_x = msg_ekf->pose.position.x - msg_mavros->pose.position.x;
+    tf_offset_y = msg_ekf->pose.position.y - msg_mavros->pose.position.y;
+    cout << "X: " << tf_offset_x << endl;
+    cout << "Y: " << tf_offset_y << endl;
 
-class Transfer{
-    private:
-        ros::NodeHandle n;
-
-        ros::Subscriber sub_goal;
-        ros::Subscriber sub_pose_mavros;
-        ros::Subscriber sub_pose_ekf;
-        ros::Publisher pub_drone2wamv;
-
-        geometry_msgs :: PoseStamped pose_goal;
-        geometry_msgs :: PoseStamped pose_mavros;
-        geometry_msgs :: PoseStamped pose_ekf;
-
-    public:
-        Transfer();
-        void goalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
-        void mavrosCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
-        void ekfCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
-};
-
-Transfer :: Transfer(){
-    sub_goal = n.subscribe<geometry_msgs::PoseStamped>("move_base_simple/goal", 1,  &Transfer::goalCallback, this);
-    sub_pose_mavros = n.subscribe<geometry_msgs::PoseStamped>("mavros/pose", 1,  &Transfer::mavrosCallback, this);
-    sub_pose_ekf = n.subscribe<geometry_msgs::PoseStamped>("ekf/pose", 1,  &Transfer::ekfCallback, this);
-    pub_drone2wamv = n.advertise<geometry_msgs::PoseStamped>("drone/goal", 10);
-}
-
-void Transfer :: goalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
-    pose_goal = *msg;
-    cout << "Recieve goal" << endl;
-    geometry_msgs :: PoseStamped msg_pub_goal;
-    msg_pub_goal.header = pose_goal.header;
-    msg_pub_goal.pose.position.x = pose_goal.pose.position.x + pose_mavros.pose.position.x - pose_ekf.pose.position.x;
-    msg_pub_goal.pose.position.y = pose_goal.pose.position.y + pose_mavros.pose.position.y - pose_ekf.pose.position.y;
-    msg_pub_goal.pose.position.z = pose_goal.pose.position.z;
-    msg_pub_goal.pose.orientation = pose_goal.pose.orientation;
-    cout << " drone X: " << pose_mavros.pose.position.x << endl;
-    cout << " ekf   X: " << pose_ekf.pose.position.x << endl;
-
-    cout << " drone Y: " << pose_mavros.pose.position.y << endl;
-    cout << " ekf   Y: " << pose_ekf.pose.position.y << endl;
-
-    cout << " X: " << msg_pub_goal.pose.position.x << endl;
-    cout << " Y: " << msg_pub_goal.pose.position.y << endl;
-    pub_drone2wamv.publish(msg_pub_goal);
-
+    static tf::TransformBroadcaster broadcast;
+    tf::Transform transform;
+    transform.setOrigin(tf::Vector3(tf_offset_x,tf_offset_y, 0.0) );
+    tf::Quaternion q;
+    q.setRPY(0, 0, 0);
+    transform.setRotation(q);
+    broadcast.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "drone_origin"));
+    
     return;
 }
 
-void Transfer :: mavrosCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
-    pose_mavros = *msg;
-    return;
-}
-
-void Transfer :: ekfCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
-    pose_ekf = *msg;
-    return;
-}
-
-int main(int argc, char **argv){
+int main(int argc, char** argv){
     ros::init(argc, argv, "transfer");
-    Transfer uav;
+
+    ros::NodeHandle n;
+    message_filters::Subscriber<geometry_msgs::PoseStamped> sub_ekf(n, "ekf/pose", 1);
+    message_filters::Subscriber<geometry_msgs::PoseStamped> sub_mavros(n, "mavros/pose", 1);
+    
+    typedef message_filters::sync_policies::ApproximateTime<geometry_msgs::PoseStamped, geometry_msgs::PoseStamped> approxSync;
+    message_filters::Synchronizer<approxSync> sync(approxSync(10), sub_ekf, sub_mavros);
+
+    // message_filters::TimeSynchronizer <geometry_msgs::PoseStamped, geometry_msgs::PoseStamped> 
+    // sync(sub_ekf, sub_mavros, 1); 
+    sync.registerCallback(boost::bind(&syncCallback, _1, _2)); 
+
     ros::spin();
+
     return 0;
 }

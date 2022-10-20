@@ -9,7 +9,6 @@ from std_msgs.msg import Float64
 from std_msgs.msg import String
 from message_filters import ApproximateTimeSynchronizer, TimeSynchronizer
 from std_srvs.srv import EmptyRequest, EmptyResponse, Empty
-from duckieboat_msgs.srv import SetValue, SetValueRequest, SetValueResponse
 import message_filters
 
 from geodesy.utm import UTMPoint, fromLatLong
@@ -50,7 +49,6 @@ class LocailizationGPSImu(object):
         self.time = 0
 
         # Service
-        self.srv_imu_offset = rospy.Service('~imu_offset', SetValue, self.cb_srv_imu_offest)
 
         # Publisher
         self.pub_odm = rospy.Publisher("~odometry", Odometry, queue_size=1)
@@ -210,10 +208,6 @@ class LocailizationGPSImu(object):
         # print(", RPY = ", posterior_roll.mean()*rad_2_deg, posterior_pitch.mean()*rad_2_deg, posterior_yaw.mean()*rad_2_deg+self.imu_offset*rad_2_deg)
         # print("========================================================")
 
-    def cb_srv_imu_offest(self, request): 
-        self.imu_offset = request.data
-        print ("Set imu offset = " + str(self.imu_offset))
-        return SetFloatResponse()
 
     def measurement(self, measurementx, variance):
         likelihood = norm(loc = measurementx, scale = np.sqrt(variance))
