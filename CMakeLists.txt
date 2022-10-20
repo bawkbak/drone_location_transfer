@@ -127,7 +127,9 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 add_executable(location_transfer src/location_transfer.cpp)
 
+
 target_link_libraries(location_transfer ${catkin_LIBRARIES})
+
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/drone_location_transfer.cpp
