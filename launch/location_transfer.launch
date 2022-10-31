@@ -3,7 +3,7 @@
     <arg name="longitude" default="150.673997"/>
     <arg name="veh" default="drone" />
     <arg name="imu_rotate" default='0' />
-    <node pkg="drone_location_transfer" type="localization_gps_imu_drone.py" name="localization_gps_imu" respawn="false" output="screen">
+    <node pkg="drone_location_transfer" type="localization_gps_imu_drone.py" name="drone_ekf" respawn="false" output="screen">
         <remap from="gps" to="mavros/global_position/global"/>
         <remap from="imu" to="mavros/imu/data"/>
         <param name="latitude" value="$(arg latitude)"/>
