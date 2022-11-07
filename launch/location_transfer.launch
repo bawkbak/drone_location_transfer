@@ -12,6 +12,6 @@
     </node>
     <node pkg="drone_location_transfer" type="location_transfer.py" name="location_transfer" respawn="false" output="screen">
         <remap from="mavros/pose" to="mavros/local_position/pose"/>
-        <remap from="ekf/pose" to="localization_gps_imu/pose"/>
+        <remap from="ekf/pose" to="drone_ekf/pose"/>
     </node>
 </launch>
