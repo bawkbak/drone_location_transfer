@@ -1,6 +1,6 @@
 <launch>
-    <arg name="latitude" default="-33.722761"/>
-    <arg name="longitude" default="150.673997"/>
+    <arg name="latitude" default="-33.7223723"/>
+    <arg name="longitude" default="150.6696012"/>
     <arg name="veh" default="drone" />
     <arg name="imu_rotate" default='0' />
     <node pkg="drone_location_transfer" type="localization_gps_imu_drone.py" name="drone_ekf" respawn="false" output="screen">
